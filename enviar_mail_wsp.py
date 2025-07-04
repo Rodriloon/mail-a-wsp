@@ -55,8 +55,13 @@ try:
     print("🟢 Cuadro de mensaje encontrado:", msg_box.get_attribute("aria-label"))
     msg_box.click()
     time.sleep(0.5)
-    msg_box.send_keys(MENSAJE)
-    time.sleep(0.5)
+
+    # Enviar el mensaje preservando saltos de línea
+    for linea in MENSAJE.splitlines():
+        msg_box.send_keys(linea)
+        msg_box.send_keys(Keys.SHIFT + Keys.ENTER)
+    # Elimina el último salto de línea extra y envía el mensaje
+    msg_box.send_keys(Keys.BACKSPACE)
     msg_box.send_keys(Keys.ENTER)
     print("✅ Mensaje enviado con éxito.")
 
