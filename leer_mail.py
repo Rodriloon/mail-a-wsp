@@ -1,18 +1,12 @@
 from imap_tools import MailBox, AND
 
-# DATOS DE ACCESO
-EMAIL = 'rodripincha7@gmail.com'
-PASSWORD = 'uowgeergdkhjsmez'  # la contraseña de aplicación de 16 dígitos
-REMITENTE_OBJETIVO = 'quantumdevsunlp@gmail.com'  # la persona que querés filtrar
+def obtener_contenido_mail():
+    EMAIL = 'rodripincha7@gmail.com'
+    PASSWORD = 'uowgeergdkhjsmez'
+    REMITENTE_OBJETIVO = 'quantumdevsunlp@gmail.com'
 
-# Conectarse al buzón de entrada
-with MailBox('imap.gmail.com').login(EMAIL, PASSWORD, 'INBOX') as mailbox:
-    # Buscar mails NO LEÍDOS y del remitente específico
-    mensajes = mailbox.fetch(AND(seen=False, from_=REMITENTE_OBJETIVO))
-
-    for mensaje in mensajes:
-        print("------")
-        print("Asunto:", mensaje.subject)
-        print("Fecha:", mensaje.date)
-        print("Contenido:")
-        print(mensaje.text or mensaje.html)
+    with MailBox('imap.gmail.com').login(EMAIL, PASSWORD, 'INBOX') as mailbox:
+        mensajes = mailbox.fetch(AND(seen=False, from_=REMITENTE_OBJETIVO))
+        for mensaje in mensajes:
+            return mensaje.text or mensaje.html  # Solo el primer mail no leído
+    return None
