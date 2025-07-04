@@ -1,7 +1,7 @@
 from imap_tools import MailBox, AND
 from bs4 import BeautifulSoup
 
-def obtener_contenido_mail():
+def obtener_contenido_mail(return_id=False):
     EMAIL = 'rodripincha7@gmail.com'
     PASSWORD = 'uowgeergdkhjsmez'
     REMITENTE_OBJETIVO = 'quantumdevsunlp@gmail.com'
@@ -19,5 +19,9 @@ def obtener_contenido_mail():
             if texto:
                 # Conserva los saltos de línea, eliminando líneas vacías
                 texto_con_saltos = "\n".join([line for line in texto.splitlines() if line.strip()])
+                if return_id:
+                    return texto_con_saltos, mensaje.uid
                 return texto_con_saltos
+    if return_id:
+        return None, None
     return None
