@@ -28,34 +28,36 @@ ultimo_mail = None
 
 while True:
     print("🔄 Revisando mails...")
-    contenido, mail_id = obtener_contenido_mail(return_id=True)
-    if contenido and mail_id != ultimo_mail:
-        print("✉️ Nuevo mail encontrado, enviando a WhatsApp...")
-        try:
-            search_box = driver.find_element(By.XPATH, '//div[@aria-placeholder="Buscar un chat o iniciar uno nuevo"]')
-            search_box.click()
-            time.sleep(1)
-            search_box.clear()
-            search_box.send_keys(GRUPO)
-            time.sleep(2)
-            search_box.send_keys(Keys.ENTER)
-            time.sleep(2)
-
-            wait = WebDriverWait(driver, 15)
-            msg_box = wait.until(EC.presence_of_element_located(
-                (By.XPATH, '//footer//div[@role="textbox" and @contenteditable="true"]')
-            ))
-            msg_box.click()
-            time.sleep(0.5)
-            for linea in contenido.splitlines():
-                msg_box.send_keys(linea)
-                msg_box.send_keys(Keys.SHIFT + Keys.ENTER)
-            msg_box.send_keys(Keys.BACKSPACE)
-            msg_box.send_keys(Keys.ENTER)
-            print("✅ Mensaje enviado con éxito.")
-            ultimo_mail = mail_id
-        except Exception as e:
-            print("❌ Error enviando mensaje:", e)
+    mails = obtener_contenido_mail(return_id=True)
+    nuevos = []
+    for contenido, mail_id in mails:
+        if mail_id != ultimo_mail:
+            nuevos.append((contenido, mail_id))
+    if nuevos:
+        print(f"✉️ {len(nuevos)} mail(s) nuevos encontrados, enviando a WhatsApp...")
+        for contenido, mail_id in nuevos:
+            try:
+                search_box = driver.find_element(By.XPATH, '//div[@aria-placeholder="Buscar un chat o iniciar uno nuevo"]')
+                search_box.click()
+                time.sleep(1)
+                search_box.clear()
+                search_box.send_keys(GRUPO)
+                time.sleep(2)
+                search_box.send_keys(Keys.ENTER)
+                time.sleep(2)
+                wait = WebDriverWait(driver, 15)
+                msg_box = wait.until(EC.presence_of_element_located((By.XPATH, '//footer//div[@role="textbox" and @contenteditable="true"]')))
+                msg_box.click()
+                time.sleep(0.5)
+                for linea in contenido.splitlines():
+                    msg_box.send_keys(linea)
+                    msg_box.send_keys(Keys.SHIFT + Keys.ENTER)
+                msg_box.send_keys(Keys.BACKSPACE)
+                msg_box.send_keys(Keys.ENTER)
+                print("✅ Mensaje enviado con éxito.")
+                ultimo_mail = mail_id
+            except Exception as e:
+                print("❌ Error enviando mensaje:", e)
     else:
         print("⏳ Sin mails nuevos.")
     time.sleep(300)  # Espera 5 minutos
