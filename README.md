@@ -30,6 +30,12 @@ Esta aplicación permite reenviar automáticamente correos electrónicos a un gr
 
 4. **Configura tu cuenta de correo en `leer_mail.py`:**
    - Edita el archivo y coloca tu email, contraseña de aplicación y remitente objetivo.
+   - ¿Cómo obtener la contraseña de aplicación de Gmail?
+   ```
+      Activa la verificación en dos pasos en tu cuenta de Google: Ve a https://myaccount.google.com/security
+      Genera una contraseña de aplicación: Ve a https://myaccount.google.com/apppasswords
+      Copia la contraseña que te muestra Google (son 16 caracteres, sin espacios).
+   ```
 
 5. **Primer uso:**
    - Ejecuta el programa con:
