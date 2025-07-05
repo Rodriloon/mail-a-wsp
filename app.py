@@ -17,8 +17,10 @@ class MailToWspApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Mail a WhatsApp")
+        self.root.geometry("900x600")
         self.running = False
         self.thread = None
+        self.driver = None
 
         self.start_btn = tk.Button(root, text="Iniciar servicio", command=self.start)
         self.start_btn.pack(padx=20, pady=10)
@@ -37,20 +39,35 @@ class MailToWspApp:
         self.thread = threading.Thread(target=self.run, daemon=True)
         self.thread.start()
 
-    def stop(self):
-        self.running = False
-        self.start_btn.config(state=tk.NORMAL)
-        self.stop_btn.config(state=tk.DISABLED)
-        self.status.config(text="Servicio detenido")
-
     def run(self):
         chrome_options = Options()
         chrome_options.add_argument(r"--user-data-dir=C:\Users\rodri\OneDrive\Escritorio\mail-a-wsp\chrome_profile")
-        driver = webdriver.Chrome(options=chrome_options)
+        self.driver = webdriver.Chrome(options=chrome_options)
+        driver = self.driver
         driver.get("https://web.whatsapp.com")
-        self.status.config(text="Esperando login en WhatsApp Web...")
-        WebDriverWait(driver, 300).until(EC.presence_of_element_located((By.XPATH, '//div[@aria-placeholder="Buscar un chat o iniciar uno nuevo"]')))
-        self.status.config(text="Sesión iniciada en WhatsApp Web")
+        time.sleep(2)
+        # Intentar cerrar el banner de descarga si aparece
+        for _ in range(5):
+            try:
+                close_banner = driver.find_element(By.XPATH, '//span[@data-icon="x-viewer"]')
+                close_banner.click()
+                time.sleep(1)
+            except Exception:
+                time.sleep(1)
+        self.status.config(text="Esperando login en WhatsApp Web")
+        try:
+            WebDriverWait(driver, 300).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, '//div[@role="textbox" and @contenteditable="true" and (' +
+                               'contains(@aria-label, "Buscar") or contains(@aria-label, "Search") or ' +
+                               'contains(@aria-placeholder, "Buscar un chat o iniciar uno nuevo"))]')
+                )
+            )
+            self.status.config(text="Sesión iniciada en WhatsApp Web")
+        except Exception:
+            self.status.config(text="No se detectó el campo de búsqueda. Cerrá banners o recargá WhatsApp Web.")
+            driver.quit()
+            return
 
         try:
             boton_continuar = driver.find_element(By.XPATH, '//button[.//span[text()="Continuar"]]')
@@ -59,39 +76,80 @@ class MailToWspApp:
         except Exception:
             pass
 
-        ultimo_mail = None
+        enviados = set()
 
         while self.running:
             self.status.config(text="Revisando mails...")
             mails = obtener_contenido_mail(return_id=True)
             nuevos = []
             for contenido, mail_id in mails:
-                if mail_id != ultimo_mail:
+                if mail_id not in enviados:
                     nuevos.append((contenido, mail_id))
             if nuevos:
                 self.status.config(text=f"Enviando {len(nuevos)} mail(s) a WhatsApp...")
-                for contenido, mail_id in nuevos:
+
+                try:
+                    # Volver a la pantalla principal de chats si el botón está presente
                     try:
-                        search_box = driver.find_element(By.XPATH, '//div[@aria-placeholder="Buscar un chat o iniciar uno nuevo"]')
-                        search_box.click()
+                        back_btn = driver.find_element(By.XPATH, '//button[@aria-label="Volver" or @aria-label="Back"]')
+                        back_btn.click()
                         time.sleep(1)
-                        search_box.clear()
-                        search_box.send_keys(GRUPO)
-                        time.sleep(2)
-                        search_box.send_keys(Keys.ENTER)
-                        time.sleep(2)
-                        wait = WebDriverWait(driver, 15)
-                        msg_box = wait.until(EC.presence_of_element_located((By.XPATH, '//footer//div[@role="textbox" and @contenteditable="true"]')))
-                        msg_box.click()
-                        time.sleep(0.5)
+                    except Exception:
+                        pass
+
+                    # Buscar el grupo
+                    wait = WebDriverWait(driver, 15)
+                    search_box = wait.until(EC.presence_of_element_located(
+                        (By.XPATH, '//div[@role="textbox" and @contenteditable="true" and (contains(@aria-label, "Buscar") or contains(@aria-label, "Search") or contains(@aria-placeholder, "Buscar un chat o iniciar uno nuevo"))]')
+                    ))
+                    search_box.click()
+                    time.sleep(1)
+                    search_box.clear()
+                    search_box.send_keys(GRUPO)
+                    time.sleep(2)
+                    search_box.send_keys(Keys.ENTER)
+                    time.sleep(3)  # Espera a que cargue el chat
+
+                    # Esperar el cuadro de mensaje (prueba varios XPATH)
+                    wait = WebDriverWait(driver, 15)
+                    msg_box = None
+                    for xpath in [
+                        '//footer//div[@role="textbox" and @contenteditable="true"]',
+                        '//div[@tabindex="10" and @contenteditable="true"]',
+                        '//div[@contenteditable="true" and @data-tab]',
+                        '//div[@role="textbox" and @contenteditable="true"]'
+                    ]:
+                        try:
+                            msg_box = wait.until(EC.presence_of_element_located((By.XPATH, xpath)))
+                            break
+                        except Exception:
+                            continue
+                    if not msg_box:
+                        raise Exception("No se encontró el cuadro de mensaje para escribir.")
+
+                    msg_box.click()
+                    time.sleep(0.5)
+
+                    # Enviar todos los mensajes seguidos
+                    for contenido, mail_id in nuevos:
                         for linea in contenido.splitlines():
                             msg_box.send_keys(linea)
                             msg_box.send_keys(Keys.SHIFT + Keys.ENTER)
                         msg_box.send_keys(Keys.BACKSPACE)
                         msg_box.send_keys(Keys.ENTER)
-                        ultimo_mail = mail_id
-                    except Exception as e:
-                        self.status.config(text=f"Error enviando mensaje: {e}")
+                        enviados.add(mail_id)
+                        time.sleep(1)  # Pequeña pausa entre mensajes
+
+                    # Volver a la lista de chats haciendo click en el ícono de chats de la barra lateral
+                    try:
+                        chats_btn = driver.find_element(By.XPATH, '//span[@data-icon="chat"]')
+                        chats_btn.click()
+                        time.sleep(1)
+                    except Exception:
+                        pass
+
+                except Exception as e:
+                    self.status.config(text=f"Error enviando mensaje: {e}")
             else:
                 self.status.config(text="Sin mails nuevos.")
             for _ in range(CHECK_INTERVAL):
@@ -100,6 +158,17 @@ class MailToWspApp:
                 time.sleep(1)
         driver.quit()
         self.status.config(text="Servicio detenido")
+
+    def stop(self):
+        self.running = False
+        self.start_btn.config(state=tk.NORMAL)
+        self.stop_btn.config(state=tk.DISABLED)
+        self.status.config(text="Servicio detenido")
+        if self.driver:
+            try:
+                self.driver.quit()
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     root = tk.Tk()
