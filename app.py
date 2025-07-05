@@ -191,10 +191,17 @@ class MailToWspApp:
             image = Image.new('RGB', (64, 64), color='white')
             d = ImageDraw.Draw(image)
             d.ellipse((16, 16, 48, 48), fill='green')  # Simple WhatsApp-like icon
-            self.icon = pystray.Icon("Mail a WhatsApp", image, "Mail a WhatsApp", menu=pystray.Menu(
-                pystray.MenuItem("Restaurar", self.restore_window),
-                pystray.MenuItem("Salir", self.quit_app)
-            ))
+            self.icon = pystray.Icon(
+                "Mail a WhatsApp",
+                image,
+                "Mail a WhatsApp",
+                menu=pystray.Menu(
+                    pystray.MenuItem("Restaurar", self.restore_window),
+                    pystray.MenuItem("Salir", self.quit_app)
+                ),
+                # Esto permite restaurar con doble click
+                on_double_click=self.restore_window
+            )
         threading.Thread(target=self.icon.run, daemon=True).start()
 
     def restore_window(self, icon, item):
