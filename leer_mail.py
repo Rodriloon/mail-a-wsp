@@ -2,9 +2,9 @@ from imap_tools import MailBox, AND
 from bs4 import BeautifulSoup
 
 def obtener_contenido_mail(return_id=False):
-    EMAIL = 'rodripincha7@gmail.com'
-    PASSWORD = 'uowgeergdkhjsmez'
-    REMITENTE_OBJETIVO = 'quantumdevsunlp@gmail.com'
+    EMAIL = 'ejemplo@gmail.com' # Reemplaza con tu correo electrónico
+    PASSWORD = '16digitos'  # Reemplaza con tu contraseña de aplicación o contraseña de correo
+    REMITENTE_OBJETIVO = 'ejemplo2@gmail.com'   # Reemplaza con el remitente del que deseas leer los correos
 
     with MailBox('imap.gmail.com').login(EMAIL, PASSWORD, 'INBOX') as mailbox:
         mensajes = mailbox.fetch(AND(seen=False, from_=REMITENTE_OBJETIVO))
