@@ -57,6 +57,8 @@ class MailToWspApp:
     def run(self):
         chrome_options = Options()
         chrome_options.add_argument(r"--user-data-dir=C:\Users\rodri\OneDrive\Escritorio\mail-a-wsp\chrome_profile")
+        chrome_options.add_argument("--new-window")
+        chrome_options.add_argument("--headless=new")  # <-- Hace la ventana invisible
         self.driver = webdriver.Chrome(options=chrome_options)
         driver = self.driver
         driver.get("https://web.whatsapp.com")
