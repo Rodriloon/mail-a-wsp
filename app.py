@@ -9,6 +9,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import pystray
+from PIL import Image, ImageDraw
 
 GRUPO = "Sadge bob"
 CHECK_INTERVAL = 30  # segundos para pruebas
@@ -17,10 +19,15 @@ class MailToWspApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Mail a WhatsApp")
-        self.root.geometry("900x600")
+        self.root.geometry("300x250")
         self.running = False
         self.thread = None
         self.driver = None
+        self.icon = None
+
+        self.minimize_var = tk.BooleanVar(value=True)
+        self.checkbox = tk.Checkbutton(root, text="Minimizar a bandeja al cerrar", variable=self.minimize_var)
+        self.checkbox.pack(padx=20, pady=(10, 0))
 
         self.start_btn = tk.Button(root, text="Iniciar servicio", command=self.start)
         self.start_btn.pack(padx=20, pady=10)
@@ -30,6 +37,14 @@ class MailToWspApp:
 
         self.status = tk.Label(root, text="Servicio detenido")
         self.status.pack(padx=20, pady=10)
+
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def on_close(self):
+        if self.minimize_var.get():
+            self.minimize_to_tray()
+        else:
+            self.root.destroy()
 
     def start(self):
         self.running = True
@@ -169,6 +184,30 @@ class MailToWspApp:
                 self.driver.quit()
             except Exception:
                 pass
+
+    def minimize_to_tray(self):
+        self.root.withdraw()
+        if not self.icon:
+            image = Image.new('RGB', (64, 64), color='white')
+            d = ImageDraw.Draw(image)
+            d.ellipse((16, 16, 48, 48), fill='green')  # Simple WhatsApp-like icon
+            self.icon = pystray.Icon("Mail a WhatsApp", image, "Mail a WhatsApp", menu=pystray.Menu(
+                pystray.MenuItem("Restaurar", self.restore_window),
+                pystray.MenuItem("Salir", self.quit_app)
+            ))
+        threading.Thread(target=self.icon.run, daemon=True).start()
+
+    def restore_window(self, icon, item):
+        self.root.after(0, self.root.deiconify)
+        if self.icon:
+            self.icon.stop()
+            self.icon = None
+
+    def quit_app(self, icon, item):
+        self.root.after(0, self.root.destroy)
+        if self.icon:
+            self.icon.stop()
+            self.icon = None
 
 if __name__ == "__main__":
     root = tk.Tk()

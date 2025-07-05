@@ -1,0 +1,6 @@
+selenium
+pystray
+Pillow
+tk
+imap-tools
+beautifulsoup4
